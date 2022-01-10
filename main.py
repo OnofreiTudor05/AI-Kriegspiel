@@ -1,6 +1,6 @@
 """
-*  Created by Andrei Arhire 28/12/2021
-*  Copyright © 2021 Andrei Arhire. All rights reserved.
+*  Created by Sera and friends 11/01/2021
+*  Copyright © 2022 Sera and friends. All rights reserved.
 """
 import copy
 import numpy as np
@@ -981,7 +981,7 @@ def create_child_nodes(nod):
 
 def dfs_check_tree_structure(nod):
     for ch in range(0, nod.get_child_size()):
-        #print(str(nod.get_index()) + "  " + str(nod.v[ch].get_index()))
+        # print(str(nod.get_index()) + "  " + str(nod.v[ch].get_index()))
         dfs_check_tree_structure(nod.v[ch])
 
 
@@ -1023,8 +1023,8 @@ def move_black_monte_carlo(black, background_, screen_, window_width_):
     for i in range(0, no_iter):
         mc_dfs(root, black, background_, screen_, window_width_)
     dfs_check_tree_structure(root)
-  #  for i in range(1, nodes_counter_in_mcts + 1):
-  #      print(f" node {i} --> {visited_vector[i]} and  {score_vector[i]}", end='\n')
+    #  for i in range(1, nodes_counter_in_mcts + 1):
+    #      print(f" node {i} --> {visited_vector[i]} and  {score_vector[i]}", end='\n')
     curr_val = 0
     best_node = -1
     nod = root
@@ -1039,7 +1039,7 @@ def move_black_monte_carlo(black, background_, screen_, window_width_):
         else:
             stalemate = True
     else:
-    #    print(best_node)
+        #    print(best_node)
         board = copy.deepcopy(nod.v[best_node].get_config())
     queue_message.pop()
     queue_message.append("player with black pieces moved")
