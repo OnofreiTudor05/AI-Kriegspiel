@@ -21,6 +21,7 @@ class Piece:
         self.info[field] = value
 
 
+see_me = 'n'
 visited_vector = [0. for i in range(0, 500000)]
 score_vector = [0. for i in range(0, 500000)]
 nodes_counter_in_mcts = 0
@@ -241,7 +242,7 @@ def update_display2(black, background_, screen_, width, text):
                                         0)
     myfont = pygame.font.SysFont('Times New Roman', 32)
     textsurface = myfont.render(text, False, (255, 255, 255))
-    screen.blit(textsurface, (0, 0))
+    screen.blit(textsurface, (width/2 + width/50, 0))
     pygame.display.update()
 
 
@@ -262,10 +263,11 @@ def update_display(black, background_, screen_, width):
     for i in range(0, 8):
         for j in range(0, 8):
             if board[i][j].info['occupied']:
-                if board[i][j].info['color'] == 'w':
-                    screen_.blit(pieces[board[i][j].info['image']],
-                                 (board[7 - j][i].info['x'], board[7 - j][i].info['y']))
-            """
+                if board[i][j].info['color'] == 'b' and see_me == 'n':
+                    continue
+                screen_.blit(pieces[board[i][j].info['image']],
+                             (board[7 - j][i].info['x'], board[7 - j][i].info['y']))
+        """
             if board[i][j].info['killable']:
                 if not board[i][j].info['occupied']:
                     pygame.draw.circle(screen_, (220, 20, 60),
@@ -936,7 +938,7 @@ def generate_possible_moves():
 
 
 def simulate_game(act_board, black, background_, screen_, window_width_):
-    global board
+    global board, see_me
     board_copy = copy.deepcopy(board)
     board = copy.deepcopy(act_board)
     moves__ = 1
@@ -953,7 +955,8 @@ def simulate_game(act_board, black, background_, screen_, window_width_):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-        # update_display(black, background_, screen_, window_width_)
+        if see_me == 'y':
+            update_display(black, background_, screen_, window_width_)
     board = copy.deepcopy(board_copy)
     if white_won:
         white_won = 0
@@ -1315,6 +1318,7 @@ if __name__ == '__main__':
     up_arrow = pygame.transform.scale(up_arrow, (45, 45))
     black = pygame.image.load("black.png")
     command = sys.argv[1]
+    see_me = sys.argv[2]
     window_width = 800
     window_height = 800
     size = (window_height, window_width)
