@@ -3,10 +3,11 @@
 *  Copyright © 2021 Andrei Arhire. All rights reserved.
 """
 import copy
-import pygame
-import sys
-import random
 import numpy as np
+import pygame
+import random
+import math
+import sys
 
 pygame.display.set_caption("Chess")
 
@@ -20,6 +21,9 @@ class Piece:
         self.info[field] = value
 
 
+visited_vector = [0. for i in range(0, 500000)]
+score_vector = [0. for i in range(0, 500000)]
+nodes_counter_in_mcts = 0
 pygame.font.init()
 queue_message = []
 last_shown_message_index = 0
@@ -258,7 +262,9 @@ def update_display(black, background_, screen_, width):
     for i in range(0, 8):
         for j in range(0, 8):
             if board[i][j].info['occupied']:
-                screen_.blit(pieces[board[i][j].info['image']], (board[7 - j][i].info['x'], board[7 - j][i].info['y']))
+                if board[i][j].info['color'] == 'w':
+                    screen_.blit(pieces[board[i][j].info['image']],
+                                 (board[7 - j][i].info['x'], board[7 - j][i].info['y']))
             """
             if board[i][j].info['killable']:
                 if not board[i][j].info['occupied']:
@@ -878,6 +884,12 @@ class Node:
         self.visited = 0.00001
         self.v = []
 
+    def get_config(self):
+        return self.config
+
+    def get_index(self):
+        return self.index
+
     def update_score(self, score):
         self.score += score
 
@@ -893,6 +905,9 @@ class Node:
     def get_child(self, id):
         return self.v[id]
 
+    def get_score(self):
+        return self.score
+
     def get_visited(self):
         return self.visited
 
@@ -903,19 +918,132 @@ class Node:
         return self.score / self.visited + 3. / 7. * math.sqrt(np.log(n) / self.visited)
 
 
-def mc_dfs(nod):
-    if nod.get_child_size() == 0:
-        if nod.get_visited() == 0:
-            reward = simulate_game(nod.config)
-            return reward
+def generate_possible_moves():
+    black_pieces = []
+    possible__ = []
+    ret = []
+    for i in range(0, 8):
+        for j in range(0, 8):
+            if board[i][j].info['color'] == 'b':
+                black_pieces.append((i, j))
+    random.shuffle(black_pieces)
+    for sz in range(0, len(black_pieces)):
+        possible__ = select_moves(black_pieces[sz], 1)
+        random.shuffle(possible__)
+        for i in range(0, len(possible__)):
+            ret.append([black_pieces[sz], possible__[i], 1])
+    return ret
 
 
-def move_black_monte_carlo():
+def simulate_game(act_board, black, background_, screen_, window_width_):
     global board
+    board_copy = copy.deepcopy(board)
+    board = copy.deepcopy(act_board)
+    moves__ = 1
+    global white_won, black_won, stalemate, draw
+    white_won, black_won, stalemate, draw = 0, 0, 0, 0
+    while (not white_won) and (not black_won) and (not stalemate) and (not draw):
+        if moves__ % 2 == 0:
+            move_white_ai(moves__)
+            moves__ += 1
+        else:
+            move_black_ai(moves__)
+            moves__ += 1
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        # update_display(black, background_, screen_, window_width_)
+    board = copy.deepcopy(board_copy)
+    if white_won:
+        white_won = 0
+        return 0
+    if stalemate or draw:
+        stalemate = 0
+        draw = 0
+        return 1
+    if black_won:
+        black_won = 0
+        return 2
+
+
+def create_child_nodes(nod):
+    global board, nodes_counter_in_mcts
+    moves_to_do = generate_possible_moves()
+    for i in range(0, len(moves_to_do)):
+        curr_board = copy.deepcopy(board)
+        move_piece(moves_to_do[i][0], moves_to_do[i][1], moves_to_do[i][2])
+        nodes_counter_in_mcts += 1
+        curr_node = Node(nodes_counter_in_mcts, nod.get_index(), board)
+        nod.add_child(curr_node)
+        board = copy.deepcopy(curr_board)
+
+
+def dfs_check_tree_structure(nod):
+    for ch in range(0, nod.get_child_size()):
+        #print(str(nod.get_index()) + "  " + str(nod.v[ch].get_index()))
+        dfs_check_tree_structure(nod.v[ch])
+
+
+def mc_dfs(nod, black, background_, screen_, window_width_):
+    if nod.get_child_size() == 0:
+        if nod.get_visited() == 0.00001:
+            reward = simulate_game(nod.config, black, background_, screen_, window_width_)
+            nod.update_score(reward)
+            nod.update_visit()
+            visited_vector[nod.get_index()] = nod.get_visited()
+            score_vector[nod.get_index()] = nod.get_score()
+            return reward
+        else:
+            create_child_nodes(nod)
+    if nod.get_child_size() == 0:
+        if is_black_checked(get_black_king_position(), 1):
+            return 0
+        else:
+            return 1
+    curr_val = 0
+    next_node = -1
+    for ch in range(0, nod.get_child_size()):
+        val = nod.v[ch].get_formula_value(nod.get_visited())
+        if val > curr_val:
+            curr_val = val
+            next_node = ch
+    nod.update_score(mc_dfs(nod.v[next_node], black, background_, screen_, window_width_))
+    nod.update_visit()
+    visited_vector[nod.get_index()] = nod.get_visited()
+    score_vector[nod.get_index()] = nod.get_score()
+
+
+def move_black_monte_carlo(black, background_, screen_, window_width_):
+    global board, nodes_counter_in_mcts, white_won, stalemate, queue_message, last_shown_message_index
+    no_iter = 2
+    nodes_counter_in_mcts = 0
     curr_board = copy.deepcopy(board)
     root = Node(1, 0, curr_board)
     for i in range(0, no_iter):
-        mc_dfs(root)
+        mc_dfs(root, black, background_, screen_, window_width_)
+    dfs_check_tree_structure(root)
+  #  for i in range(1, nodes_counter_in_mcts + 1):
+  #      print(f" node {i} --> {visited_vector[i]} and  {score_vector[i]}", end='\n')
+    curr_val = 0
+    best_node = -1
+    nod = root
+    for ch in range(0, nod.get_child_size()):
+        val = nod.v[ch].get_score()
+        if val > curr_val:
+            curr_val = val
+            best_node = ch
+    if nod.get_child_size() == 0:
+        if is_black_checked(get_black_king_position(), 1):
+            white_won = True
+        else:
+            stalemate = True
+    else:
+    #    print(best_node)
+        board = copy.deepcopy(nod.v[best_node].get_config())
+    queue_message.pop()
+    queue_message.append("player with black pieces moved")
+    last_shown_message_index = len(queue_message)
 
 
 def move_black_ai(moves_):
@@ -1133,18 +1261,14 @@ def move_piece(from_, to_, moves_):
         draw = True
 
 
-def computer_vs_computer(black, background_, screen_, window_width_):
+def computer_vs_computer(black, background_, screen_, window_width_, moves__):
     """ computer plays black and whites pieces """
-    moves__ = 0
     global white_won, black_won, stalemate, draw
     while (not white_won) and (not black_won) and (not stalemate) and (not draw):
-        pygame.time.delay(50)
         if moves__ % 2 == 0:
-            pygame.time.delay(10)
             move_white_ai(moves__)
             moves__ += 1
         else:
-            pygame.time.delay(10)
             move_black_ai(moves__)
             moves__ += 1
         for event in pygame.event.get():
@@ -1204,7 +1328,7 @@ if __name__ == '__main__':
     piece_to_move = []
     possible = []
     if command == 'cc':
-        computer_vs_computer(black, background, screen, window_width)
+        computer_vs_computer(black, background, screen, window_width, 0)
     else:
         while (not white_won) and (not black_won) and (not stalemate) and (not draw):
             pygame.time.delay(50)
@@ -1216,7 +1340,6 @@ if __name__ == '__main__':
                     pos = pygame.mouse.get_pos()
                     x, y = get_pos(pos, window_width / 16)
                     x, y = y, 7 - x
-                    print(check_clicked_on_arrows(pos, window_width))
                     if x > 7 or y > 7:
                         continue
                     if not selected:
@@ -1252,9 +1375,12 @@ if __name__ == '__main__':
                             moves += 1
                             if command == 'hc':
                                 make_them_not_killable(possible)
+                                queue_message.append("loading...")
+                                last_shown_message_index = len(queue_message)
                                 update_display(black, background, screen, window_width)
                                 # pygame.time.delay(500)
-                                move_black_ai(moves)
+                                move_black_monte_carlo(black, background, screen, window_width)
+                                # move_black_ai(moves)
                                 moves += 1
                         else:
                             queue_message.append("Player 1 tried an invalid move")
