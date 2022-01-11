@@ -1,7 +1,3 @@
-"""
-*  Created by Sera and friends 11/01/2021
-*  Copyright © 2022 Sera and friends. All rights reserved.
-"""
 import copy
 import numpy as np
 import pygame
@@ -19,6 +15,57 @@ class Piece:
 
     def update(self, field, value):
         self.info[field] = value
+
+
+note_table = [[0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0],
+              [1, 2, 3, 4, 5, 6, 7, 0]]
+
+piece_image = [pygame.image.load('bR.svg'), pygame.image.load('bB.svg'), pygame.image.load('bN.svg'),
+               pygame.image.load('bQ.svg'), pygame.image.load('bK.svg'), pygame.image.load('bP.svg'),
+               pygame.image.load('X.jpg')]
+
+pygame.transform.scale(piece_image[6], (45, 45))
+
+black_color = (129, 73, 0)
+white_color = (255, 235, 156)
+
+
+def get_note_table_cell(position_to_draw):
+    mouse_pos = pygame.mouse.get_pos()
+    return [int((mouse_pos[1] - position_to_draw[0]) / position_to_draw[2]),
+            int((mouse_pos[0] - position_to_draw[1]) / position_to_draw[2])]
+
+
+def draw_note_table(_background, position_to_draw):
+    for i in range(0, 9):
+        for j in range(0, 8):
+            if (i + j) % 2 == 1:
+                color_to_draw = black_color
+            else:
+                color_to_draw = white_color
+            if i != 8:
+                pygame.draw.rect(_background, color_to_draw, (
+                    position_to_draw[1] + position_to_draw[2] * j,
+                    position_to_draw[0] + position_to_draw[2] * i,
+                    position_to_draw[2], position_to_draw[2]))
+            else:
+                pygame.draw.rect(_background, (255, 255, 255, 125), (
+                    position_to_draw[1] + position_to_draw[2] * j,
+                    position_to_draw[0] + position_to_draw[2] * i,
+                    position_to_draw[2] - 1, position_to_draw[2] - 1))
+            piece_width = 60
+            piece_to_draw = note_table[i][j] - 1
+            if piece_to_draw != -1:
+                _background.blit(piece_image[piece_to_draw], (position_to_draw[1] + position_to_draw[2] * j,
+                                                              position_to_draw[0] + position_to_draw[2] * i,
+                                                              ))
 
 
 see_me = 'n'
@@ -242,7 +289,9 @@ def update_display2(black, background_, screen_, width, text):
                                         0)
     myfont = pygame.font.SysFont('Times New Roman', 32)
     textsurface = myfont.render(text, False, (255, 255, 255))
-    screen.blit(textsurface, (width/2 + width/50, 0))
+    screen.blit(textsurface, (width / 2 + width / 50, 0))
+    draw_note_table(screen, [0, 420, 45])
+    draw_log_messages()
     pygame.display.update()
 
 
@@ -304,6 +353,7 @@ def update_display(black, background_, screen_, width):
     # self.screen.blit(up_arrow, (width-width/20, 400))
     screen.blit(up_arrow, (width - width / 15, width - width / 2 + 45))
     screen.blit(down_arrow, (width - width / 15, width - width / 15))
+    draw_note_table(screen, [0, 420, 45])
     draw_log_messages()
     pygame.display.update()
 
@@ -1281,8 +1331,26 @@ def computer_vs_computer(black, background_, screen_, window_width_, moves__):
         update_display(black, background_, screen_, window_width_)
 
 
+def check_if_pawn_can_take_piece():
+    global queue_message, last_shown_message_index
+    pawn = False
+    for i in range(8):
+        for j in range(8):
+            if board[i][j].info['type'] == 'p' and board[i][j].info['color'] == 'w':
+                if (inside_board(i - 1, j - 1) and board[i - 1][j - 1].info['color'] == 'b') or (
+                        inside_board(i - 1, j + 1) and board[i - 1][j + 1].info['color'] == 'b'):
+                    pawn = True
+
+    if pawn is True:
+        message = "Try"
+    else:
+        message = "No chance"
+    queue_message.append(message)
+    last_shown_message_index = len(queue_message)
+
+
 def check_clicked_on_arrows(mouse_pos, width):
-    global last_shown_message_index
+    global last_shown_message_index, queue_message
     if len(queue_message) > 9 and width - width / 15 <= mouse_pos[0] <= width - width / 15 + 45:
         if width - width / 2 + 45 <= mouse_pos[1] <= width - width / 2 + 90:
             last_shown_message_index = min(last_shown_message_index + 1, len(queue_message))
@@ -1290,6 +1358,9 @@ def check_clicked_on_arrows(mouse_pos, width):
         if width - width / 15 <= mouse_pos[1] <= width:
             last_shown_message_index = max(9, last_shown_message_index - 1)
             return 2
+    if 753 <= mouse_pos[0] <= 797 and 600 <= mouse_pos[1] <= 640:
+        check_if_pawn_can_take_piece()
+        return 3
     return 0
 
 
@@ -1298,6 +1369,7 @@ count = 0
 
 def draw_log_messages():
     global count, queue_message
+    pygame.draw.rect(screen, black_color, (753, 600, 44, 40))
     font = pygame.font.SysFont("Comic Sans MS", 20)
     count = 1 + count
     log_length = 40
@@ -1309,6 +1381,9 @@ def draw_log_messages():
                           + queue_message[last_shown_message_index - i - 1]
         text_to_display = font.render(text_to_display, True, (255, 235, 156))
         screen.blit(text_to_display, (50, 440 + log_length * i))
+    question_text = 'Any?'
+    question_text = font.render(question_text, True, white_color)
+    screen.blit(question_text, (754, 600))
 
 
 if __name__ == '__main__':
@@ -1331,6 +1406,8 @@ if __name__ == '__main__':
     moves = 0
     piece_to_move = []
     possible = []
+    current_note_piece = 0
+
     if command == 'cc':
         computer_vs_computer(black, background, screen, window_width, 0)
     else:
@@ -1342,6 +1419,27 @@ if __name__ == '__main__':
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     pos = pygame.mouse.get_pos()
+                    if check_clicked_on_arrows(pos, window_width) != 0:
+                        update_display(black, background, screen, window_width)
+                        continue
+
+                    position_on_note = get_note_table_cell([0, 420, 45])
+                    if 0 <= position_on_note[0] <= 8 and 0 <= position_on_note[1] <= 7:
+                        if current_note_piece == 0:
+                            if position_on_note[0] == 8:
+                                if position_on_note[1] == 6:
+                                    current_note_piece = -1
+                                else:
+                                    current_note_piece = position_on_note[1] + 1
+                        else:
+                            if position_on_note[0] != 8:
+                                if current_note_piece == -1:
+                                    note_table[position_on_note[0]][position_on_note[1]] = 0
+                                    current_note_piece = 0
+                                else:
+                                    note_table[position_on_note[0]][position_on_note[1]] = current_note_piece
+                                    current_note_piece = 0
+
                     x, y = get_pos(pos, window_width / 16)
                     x, y = y, 7 - x
                     if x > 7 or y > 7:
@@ -1373,8 +1471,15 @@ if __name__ == '__main__':
                             if piece_to_move == (0, 3) and (x, y) == (0, 5):
                                 move_piece((0, 7), (0, 4), moves)
                                 move_counter -= 1
+                            line = "12345678"
+                            column = "ABCDEFGH"
+                            msg = ""
+                            if board[x][y].info['color'] == 'b':
+                                msg = f"Player 1 captured a piece on {column[7 - y]}{line[7 - x]}"
+                            else:
+                                msg = f"Player 1 made a valid move on {column[7 - y]}{line[7 - x]}"
                             move_piece(piece_to_move, (x, y), moves)
-                            queue_message.append("Player 1 made a valid move")
+                            queue_message.append(msg)
                             last_shown_message_index = len(queue_message)
                             moves += 1
                             if command == 'hc':
