@@ -1475,9 +1475,9 @@ if __name__ == '__main__':
                             column = "ABCDEFGH"
                             msg = ""
                             if board[x][y].info['color'] == 'b':
-                                msg = f"Player 1 captured a piece on {column[7 - y]}{line[7 - x]}"
+                                msg = f"Player 1 captured a piece from {column[7-piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
                             else:
-                                msg = f"Player 1 made a valid move on {column[7 - y]}{line[7 - x]}"
+                                msg = f"Player 1 made a valid move from {column[7-piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
                             move_piece(piece_to_move, (x, y), moves)
                             queue_message.append(msg)
                             last_shown_message_index = len(queue_message)
