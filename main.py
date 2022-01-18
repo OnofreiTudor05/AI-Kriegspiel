@@ -7,6 +7,8 @@ import sys
 
 pygame.display.set_caption("Chess")
 
+random_vs_mc = 0
+no_iter = 0
 
 class Piece:
     def __init__(self, color, type_, image, killable, occupied, row_, column, width):
@@ -1068,8 +1070,7 @@ def mc_dfs(nod, black, background_, screen_, window_width_):
 
 
 def move_black_monte_carlo(black, background_, screen_, window_width_):
-    global board, nodes_counter_in_mcts, white_won, stalemate, queue_message, last_shown_message_index
-    no_iter = 2
+    global board, nodes_counter_in_mcts, white_won, stalemate, queue_message, last_shown_message_index, no_iter
     nodes_counter_in_mcts = 0
     curr_board = copy.deepcopy(board)
     root = Node(1, 0, curr_board)
@@ -1094,7 +1095,9 @@ def move_black_monte_carlo(black, background_, screen_, window_width_):
     else:
         #    print(best_node)
         board = copy.deepcopy(nod.v[best_node].get_config())
-    queue_message.pop()
+    global random_vs_mc
+    if random_vs_mc == 0:
+        queue_message.pop()
     queue_message.append("player with black pieces moved")
     last_shown_message_index = len(queue_message)
 
@@ -1314,7 +1317,7 @@ def move_piece(from_, to_, moves_):
         draw = True
 
 
-def computer_vs_computer(black, background_, screen_, window_width_, moves__):
+def random_vs_random(black, background_, screen_, window_width_, moves__):
     """ computer plays black and whites pieces """
     global white_won, black_won, stalemate, draw
     while (not white_won) and (not black_won) and (not stalemate) and (not draw):
@@ -1323,6 +1326,23 @@ def computer_vs_computer(black, background_, screen_, window_width_, moves__):
             moves__ += 1
         else:
             move_black_ai(moves__)
+            moves__ += 1
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        update_display(black, background_, screen_, window_width_)
+
+
+def random_vs_monteCarlo(black, background_, screen_, window_width_, moves__):
+    """ computer plays black and whites pieces """
+    global white_won, black_won, stalemate, draw
+    while (not white_won) and (not black_won) and (not stalemate) and (not draw):
+        if moves__ % 2 == 0:
+            move_white_ai(moves__)
+            moves__ += 1
+        else:
+            move_black_monte_carlo(black, background_, screen_, window_width_)
             moves__ += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1394,6 +1414,8 @@ if __name__ == '__main__':
     black = pygame.image.load("black.png")
     command = sys.argv[1]
     see_me = sys.argv[2]
+    if command == 'rmc':
+        no_iter = int(sys.argv[3])
     window_width = 800
     window_height = 800
     size = (window_height, window_width)
@@ -1409,128 +1431,138 @@ if __name__ == '__main__':
     current_note_piece = 0
 
     if command == 'cc':
-        computer_vs_computer(black, background, screen, window_width, 0)
+        random_vs_random(black, background, screen, window_width, 0)
     else:
-        while (not white_won) and (not black_won) and (not stalemate) and (not draw):
-            pygame.time.delay(50)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = pygame.mouse.get_pos()
-                    if check_clicked_on_arrows(pos, window_width) != 0:
-                        update_display(black, background, screen, window_width)
-                        continue
+        if command == 'rmc':
+            random_vs_mc = 1
+            random_vs_monteCarlo(black, background, screen, window_width, 1)
+        else:
+            while (not white_won) and (not black_won) and (not stalemate) and (not draw):
+                pygame.time.delay(50)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        pos = pygame.mouse.get_pos()
+                        if check_clicked_on_arrows(pos, window_width) != 0:
+                            update_display(black, background, screen, window_width)
+                            continue
 
-                    position_on_note = get_note_table_cell([0, 420, 45])
-                    if 0 <= position_on_note[0] <= 8 and 0 <= position_on_note[1] <= 7:
-                        if current_note_piece == 0:
-                            if position_on_note[0] == 8:
-                                if position_on_note[1] == 6:
-                                    current_note_piece = -1
-                                else:
-                                    current_note_piece = position_on_note[1] + 1
-                        else:
-                            if position_on_note[0] != 8:
-                                if current_note_piece == -1:
-                                    note_table[position_on_note[0]][position_on_note[1]] = 0
-                                    current_note_piece = 0
-                                else:
-                                    note_table[position_on_note[0]][position_on_note[1]] = current_note_piece
-                                    current_note_piece = 0
-
-                    x, y = get_pos(pos, window_width / 16)
-                    x, y = y, 7 - x
-                    if x > 7 or y > 7:
-                        continue
-                    if not selected:
-                        possible = select_moves((x, y), moves)
-                        make_them_killable(possible)
-                        piece_to_move = x, y
-                        if len(possible) != 0:
-                            selected = True
-                    else:
-                        if board[x][y].info['killable']:
-                            row, col = piece_to_move
-                            if moves % 2 == 0 and board[row][col].info['type'] == 'p' and col != y and (
-                                    not board[x][y].info['occupied']) and row == 3:
-                                clear_square((x + 1, y))
-                            if moves % 2 == 1 and board[row][col].info['type'] == 'p' and col != y and (
-                                    not board[x][y].info['occupied']) and row == 4:
-                                clear_square((x - 1, y))
-                            if piece_to_move == (7, 3) and (x, y) == (7, 1):
-                                move_piece((7, 0), (7, 2), moves)
-                                move_counter -= 1
-                            if piece_to_move == (0, 3) and (x, y) == (0, 1):
-                                move_piece((0, 0), (0, 2), moves)
-                                move_counter -= 1
-                            if piece_to_move == (7, 3) and (x, y) == (7, 5):
-                                move_piece((7, 7), (7, 4), moves)
-                                move_counter -= 1
-                            if piece_to_move == (0, 3) and (x, y) == (0, 5):
-                                move_piece((0, 7), (0, 4), moves)
-                                move_counter -= 1
-                            line = "12345678"
-                            column = "ABCDEFGH"
-                            msg = ""
-                            if board[x][y].info['color'] == 'b':
-                                msg = f"Player 1 captured a piece from {column[7-piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
+                        position_on_note = get_note_table_cell([0, 420, 45])
+                        if 0 <= position_on_note[0] <= 8 and 0 <= position_on_note[1] <= 7:
+                            if current_note_piece == 0:
+                                if position_on_note[0] == 8:
+                                    if position_on_note[1] == 6:
+                                        current_note_piece = -1
+                                    else:
+                                        current_note_piece = position_on_note[1] + 1
                             else:
-                                msg = f"Player 1 made a valid move from {column[7-piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
-                            move_piece(piece_to_move, (x, y), moves)
-                            queue_message.append(msg)
-                            last_shown_message_index = len(queue_message)
-                            moves += 1
-                            if command == 'hc':
-                                make_them_not_killable(possible)
-                                queue_message.append("loading...")
+                                if position_on_note[0] != 8:
+                                    if current_note_piece == -1:
+                                        note_table[position_on_note[0]][position_on_note[1]] = 0
+                                        current_note_piece = 0
+                                    else:
+                                        note_table[position_on_note[0]][position_on_note[1]] = current_note_piece
+                                        current_note_piece = 0
+
+                        x, y = get_pos(pos, window_width / 16)
+                        x, y = y, 7 - x
+                        if x > 7 or y > 7:
+                            continue
+                        if not selected:
+                            possible = select_moves((x, y), moves)
+                            make_them_killable(possible)
+                            piece_to_move = x, y
+                            if len(possible) != 0:
+                                selected = True
+                        else:
+                            if board[x][y].info['killable']:
+                                row, col = piece_to_move
+                                if moves % 2 == 0 and board[row][col].info['type'] == 'p' and col != y and (
+                                        not board[x][y].info['occupied']) and row == 3:
+                                    clear_square((x + 1, y))
+                                if moves % 2 == 1 and board[row][col].info['type'] == 'p' and col != y and (
+                                        not board[x][y].info['occupied']) and row == 4:
+                                    clear_square((x - 1, y))
+                                if piece_to_move == (7, 3) and (x, y) == (7, 1):
+                                    move_piece((7, 0), (7, 2), moves)
+                                    move_counter -= 1
+                                if piece_to_move == (0, 3) and (x, y) == (0, 1):
+                                    move_piece((0, 0), (0, 2), moves)
+                                    move_counter -= 1
+                                if piece_to_move == (7, 3) and (x, y) == (7, 5):
+                                    move_piece((7, 7), (7, 4), moves)
+                                    move_counter -= 1
+                                if piece_to_move == (0, 3) and (x, y) == (0, 5):
+                                    move_piece((0, 7), (0, 4), moves)
+                                    move_counter -= 1
+                                line = "12345678"
+                                column = "ABCDEFGH"
+                                msg = ""
+                                if board[x][y].info['color'] == 'b':
+                                    msg = f"Player 1 captured a piece from {column[7 - piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
+                                else:
+                                    msg = f"Player 1 made a valid move from {column[7 - piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
+                                move_piece(piece_to_move, (x, y), moves)
+                                queue_message.append(msg)
                                 last_shown_message_index = len(queue_message)
-                                update_display(black, background, screen, window_width)
-                                # pygame.time.delay(500)
-                                move_black_monte_carlo(black, background, screen, window_width)
-                                # move_black_ai(moves)
                                 moves += 1
-                        else:
-                            queue_message.append("Player 1 tried an invalid move")
-                            last_shown_message_index = len(queue_message)
-                        make_them_not_killable(possible)
-                        possible = []
-                        selected = False
-                        pieces_ = []
-                        for i in range(0, 8):
-                            for j in range(0, 8):
-                                if (board[i][j].info['color'] == 'w' and moves % 2 == 0) or (
-                                        (board[i][j].info['color'] == 'b' and moves % 2 == 1)):
-                                    pieces_.append((i, j))
-                        random.shuffle(pieces_)
-                        player_ok = True
-                        for sz in range(0, len(pieces_)):
-                            possible_ = select_moves(pieces_[sz], moves)
-                            if len(possible_) == 0:
-                                continue
-                            player_ok = False
-                            break
-                        if player_ok:
-                            if moves % 2 == 1 and is_black_checked(get_black_king_position(), moves):
-                                white_won = True
+                                if command == 'hc':
+                                    make_them_not_killable(possible)
+                                    if is_black_checked(get_black_king_position(), 1):
+                                        queue_message.append("black king is checked")
+                                        last_shown_message_index = len(queue_message)
+                                    queue_message.append("loading...")
+                                    last_shown_message_index = len(queue_message)
+                                    update_display(black, background, screen, window_width)
+                                    # pygame.time.delay(500)
+                                    move_black_monte_carlo(black, background, screen, window_width)
+                                    # move_black_ai(moves)
+                                    if is_white_checked(get_white_king_position(), 0):
+                                        queue_message.append("white king is checked")
+                                        last_shown_message_index = len(queue_message)
+                                    moves += 1
                             else:
-                                if moves % 2 == 0 and is_white_checked(get_white_king_position(), moves):
-                                    black_won = True
+                                queue_message.append("Player 1 tried an invalid move")
+                                last_shown_message_index = len(queue_message)
+                            make_them_not_killable(possible)
+                            possible = []
+                            selected = False
+                            pieces_ = []
+                            for i in range(0, 8):
+                                for j in range(0, 8):
+                                    if (board[i][j].info['color'] == 'w' and moves % 2 == 0) or (
+                                            (board[i][j].info['color'] == 'b' and moves % 2 == 1)):
+                                        pieces_.append((i, j))
+                            random.shuffle(pieces_)
+                            player_ok = True
+                            for sz in range(0, len(pieces_)):
+                                possible_ = select_moves(pieces_[sz], moves)
+                                if len(possible_) == 0:
+                                    continue
+                                player_ok = False
+                                break
+                            if player_ok:
+                                if moves % 2 == 1 and is_black_checked(get_black_king_position(), moves):
+                                    white_won = True
                                 else:
-                                    stalemate = True
+                                    if moves % 2 == 0 and is_white_checked(get_white_king_position(), moves):
+                                        black_won = True
+                                    else:
+                                        stalemate = True
 
-            update_display(black, background, screen, window_width)
-    while True:
-        if white_won:
-            update_display2(black, background, screen, window_width, "Player with white pieces won!")
-        if black_won:
-            update_display2(black, background, screen, window_width, "Player with black pieces won!")
-        if stalemate:
-            update_display2(black, background, screen, window_width, "Stalemate!")
-        if draw:
-            update_display2(black, background, screen, window_width, "Draw!")
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                update_display(black, background, screen, window_width)
+while True:
+    if white_won:
+        update_display2(black, background, screen, window_width, "Player with white pieces won!")
+    if black_won:
+        update_display2(black, background, screen, window_width, "Player with black pieces won!")
+    if stalemate:
+        update_display2(black, background, screen, window_width, "Stalemate!")
+    if draw:
+        update_display2(black, background, screen, window_width, "Draw!")
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
