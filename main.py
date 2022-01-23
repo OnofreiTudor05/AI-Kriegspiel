@@ -104,6 +104,7 @@ game_states = {}
 move_counter = 0
 black_en_passant, white_en_passant = [False for i in range(0, 8)], [False for i in range(0, 8)]
 board = [[Piece(None, None, None, False, False, 0, 0, 0) for i in range(0, 8)] for j in range(0, 8)]
+board_black = [[Piece(None, None, None, False, False, 0, 0, 0) for i in range(0, 8)] for j in range(0, 8)]
 pieces = {'bP': pygame.image.load('bP.svg'), 'bR': pygame.image.load('bR.svg'), 'bN': pygame.image.load('bN.svg'),
           'bB': pygame.image.load('bB.svg'),
           'bQ': pygame.image.load('bQ.svg'), 'bK': pygame.image.load('bK.svg'),
@@ -262,29 +263,29 @@ def build_starting_board(width):
 
 def build_starting_board2(width):
     """initialises the board"""
-    board[0][0] = Piece('b', 'r', 'bR', False, True, 0, 0, width)
-    board[0][1] = Piece('b', 'n', 'bN', False, True, 0, 1, width)
-    board[0][2] = Piece('b', 'b', 'bB', False, True, 0, 2, width)
-    board[0][3] = Piece('b', 'k', 'bK', False, True, 0, 3, width)
-    board[0][4] = Piece('b', 'q', 'bQ', False, True, 0, 4, width)
-    board[0][5] = Piece('b', 'b', 'bB', False, True, 0, 5, width)
-    board[0][6] = Piece('b', 'n', 'bN', False, True, 0, 6, width)
-    board[0][7] = Piece('b', 'r', 'bR', False, True, 0, 7, width)
+    board_black[0][0] = Piece('b', 'r', 'bR', False, True, 0, 0, width)
+    board_black[0][1] = Piece('b', 'n', 'bN', False, True, 0, 1, width)
+    board_black[0][2] = Piece('b', 'b', 'bB', False, True, 0, 2, width)
+    board_black[0][3] = Piece('b', 'k', 'bK', False, True, 0, 3, width)
+    board_black[0][4] = Piece('b', 'q', 'bQ', False, True, 0, 4, width)
+    board_black[0][5] = Piece('b', 'b', 'bB', False, True, 0, 5, width)
+    board_black[0][6] = Piece('b', 'n', 'bN', False, True, 0, 6, width)
+    board_black[0][7] = Piece('b', 'r', 'bR', False, True, 0, 7, width)
     for i in range(0, 8):
-        board[1][i] = Piece('b', 'p', 'bP', False, True, 1, i, width)
+        board_black[1][i] = Piece('b', 'p', 'bP', False, True, 1, i, width)
     for i in range(2, 6):
         for j in range(0, 8):
-            board[i][j] = Piece(None, None, None, False, False, i, j, width)
+            board_black[i][j] = Piece(None, None, None, False, False, i, j, width)
     for i in range(0, 8):
-        board[6][i] = Piece(None, None, None, False, False, 6, i, width)
-    board[7][0] = Piece(None, None, None, False, False, 7, 0, width)
-    board[7][1] = Piece(None, None, None, False, False, 7, 1, width)
-    board[7][2] = Piece(None, None, None, False, False, 7, 2, width)
-    board[7][3] = Piece(None, None, None, False, False, 7, 3, width)
-    board[7][4] = Piece(None, None, None, False, False, 7, 4, width)
-    board[7][5] = Piece(None, None, None, False, False, 7, 5, width)
-    board[7][6] = Piece(None, None, None, False, False, 7, 6, width)
-    board[7][7] = Piece(None, None, None, False, False, 7, 7, width)
+        board_black[6][i] = Piece(None, None, None, False, False, 6, i, width)
+    board_black[7][0] = Piece(None, None, None, False, False, 7, 0, width)
+    board_black[7][1] = Piece(None, None, None, False, False, 7, 1, width)
+    board_black[7][2] = Piece(None, None, None, False, False, 7, 2, width)
+    board_black[7][3] = Piece(None, None, None, False, False, 7, 3, width)
+    board_black[7][4] = Piece(None, None, None, False, False, 7, 4, width)
+    board_black[7][5] = Piece(None, None, None, False, False, 7, 5, width)
+    board_black[7][6] = Piece(None, None, None, False, False, 7, 6, width)
+    board_black[7][7] = Piece(None, None, None, False, False, 7, 7, width)
 
 
 def update_display2(black, background_, screen_, width, text):
@@ -448,6 +449,29 @@ def black_pawn_to_move(pos_, moves_):
     if inside_board(x_ + 1, y_ - 1) and board[x_ + 1][y_ - 1].info['occupied'] and (board[x_ + 1][y_ - 1].info[
                                                                                         'color'] == 'w'):
         # if simulate_move((x_, y_), (x_ + 1, y_ - 1), moves_):
+        possible_.append((x_ + 1, y_ - 1))
+
+    return possible_
+
+
+def black_pawn_to_move2_black(pos_, moves_):
+    """ return valid positions available for the pawn located in pos_ """
+    x_, y_ = pos_
+    possible_ = []
+    if inside_board(x_ + 1, y_) and not board_black[x_ + 1][y_].info['occupied']:
+        possible_.append((x_ + 1, y_))
+    if inside_board(x_ + 2, y_) and (not board_black[x_ + 1][y_].info['occupied']) and (
+            not board_black[x_ + 2][y_].info['occupied']) and (x_ == 1):
+        if simulate_move(pos_, (x_ + 2, y_), moves_):
+            possible_.append((x_ + 2, y_))
+
+    if inside_board(x_ + 1, y_ + 1) and board_black[x_ + 1][y_ + 1].info['occupied'] and (
+            board_black[x_ + 1][y_ + 1].info['color'] == 'w'):
+        if simulate_move(pos_, (x_ + 1, y_ + 1), moves_):
+            possible_.append((x_ + 1, y_ + 1))
+    if inside_board(x_ + 1, y_ - 1) and board_black[x_ + 1][y_ - 1].info['occupied'] and (
+            board_black[x_ + 1][y_ - 1].info[
+                'color'] == 'w'):
         possible_.append((x_ + 1, y_ - 1))
 
     return possible_
@@ -686,6 +710,79 @@ def queen_to_move2(pos_, moves_):
     return list(possible_)
 
 
+def queen_to_move2_black(pos_, moves_):
+    """ return valid positions available for the queen located in pos_ """
+    possible_ = set()
+    x_, y_ = pos_
+    for i in range(1, 8):
+        new_x = x_ + i
+        new_y = y_ + i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((new_x, new_y))
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    for i in range(1, 8):
+        new_x = x_ - i
+        new_y = y_ + i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((new_x, new_y))
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    for i in range(1, 8):
+        new_x = x_ + i
+        new_y = y_ - i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((new_x, new_y))
+
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    for i in range(1, 8):
+        new_x = x_ - i
+        new_y = y_ - i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((new_x, new_y))
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    for x_2 in range(x_ + 1, 8, 1):
+        if (board_black[x_2][y_].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_2][y_].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((x_2, y_))
+        if board_black[x_2][y_].info['occupied']:
+            break
+    for x_2 in range(x_ - 1, -1, -1):
+        if (board_black[x_2][y_].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_2][y_].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((x_2, y_))
+        if board_black[x_2][y_].info['occupied']:
+            break
+    for y_2 in range(y_ + 1, 8, 1):
+        if (board_black[x_][y_2].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_][y_2].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((x_, y_2))
+        if board_black[x_][y_2].info['occupied']:
+            break
+    for y_2 in range(y_ - 1, -1, -1):
+        if (board_black[x_][y_2].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_][y_2].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.add((x_, y_2))
+        if board_black[x_][y_2].info['occupied']:
+            break
+
+    return list(possible_)
+
+
 def bishop_to_move(pos_, moves_):
     """ return threatened positions available for the bishop located in pos_ """
     possible_ = []
@@ -776,6 +873,49 @@ def bishop_to_move2(pos_, moves_):
     return possible_
 
 
+def bishop_to_move2_black(pos_, moves_):
+    """ return valid positions available for the bishop located in pos_ """
+    possible_ = []
+    x_, y_ = pos_
+    for i in range(1, 8):
+        new_x = x_ + i
+        new_y = y_ + i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((new_x, new_y))
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    for i in range(1, 8):
+        new_x = x_ - i
+        new_y = y_ + i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((new_x, new_y))
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    for i in range(1, 8):
+        new_x = x_ + i
+        new_y = y_ - i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((new_x, new_y))
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    for i in range(1, 8):
+        new_x = x_ - i
+        new_y = y_ - i
+        if (not inside_board(new_x, new_y) or board_black[new_x][new_y].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[new_x][new_y].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((new_x, new_y))
+        if board_black[new_x][new_y].info['occupied']:
+            break
+    return possible_
+
+
 def king_to_move_simple(pos_, moves_):
     """ return threatened positions available for the king located in pos_ """
     possible_ = []
@@ -829,6 +969,23 @@ def king_to_move2(pos_, moves_):
     return possible_
 
 
+def king_to_move2_black(pos_, moves_):
+    """ return valid positions available for the king located in pos_ """
+    possible_ = []
+    di = [-1, -1, -1, 0, 1, 1, 1, 0]
+    dj = [-1, 0, 1, -1, -1, 0, 1, 1]
+    for d in range(0, len(di)):
+        new_x = pos_[0] + di[d]
+        new_y = pos_[1] + dj[d]
+        if moves_ % 2 == 1:
+            if inside_board(new_x, new_y) and board_black[new_x][new_y].info['color'] != 'b':
+                possible_.append((new_x, new_y))
+        else:
+            if inside_board(new_x, new_y) and board_black[new_x][new_y].info['color'] != 'w':
+                possible_.append((new_x, new_y))
+    return possible_
+
+
 def knight_to_move(pos_, moves_):
     """ return threatened positions available for the knight located in pos_ """
     possible_ = []
@@ -842,6 +999,23 @@ def knight_to_move(pos_, moves_):
                 possible_.append((new_x, new_y))
         else:
             if inside_board(new_x, new_y) and board[new_x][new_y].info['color'] != 'w':
+                possible_.append((new_x, new_y))
+    return possible_
+
+
+def knight_to_move2_black(pos_, moves_):
+    """ return valid positions available for the knight located in pos_ """
+    possible_ = []
+    di = [-1, -1, 1, 1, -2, -2, 2, 2]
+    dj = [2, -2, -2, 2, -1, 1, -1, 1]
+    for d in range(0, len(di)):
+        new_x = pos_[0] + di[d]
+        new_y = pos_[1] + dj[d]
+        if moves_ % 2 == 1:
+            if inside_board(new_x, new_y) and board_black[new_x][new_y].info['color'] != 'b':
+                possible_.append((new_x, new_y))
+        else:
+            if inside_board(new_x, new_y) and board_black[new_x][new_y].info['color'] != 'w':
                 possible_.append((new_x, new_y))
     return possible_
 
@@ -936,6 +1110,42 @@ def rook_to_move2(pos_, moves_):
         if simulate_move(pos_, (x_, y_2), moves_):
             possible_.append((x_, y_2))
         if board[x_][y_2].info['occupied']:
+            break
+
+    return possible_
+
+
+def rook_to_move2_black(pos_, moves_):
+    """ return valid positions available for the rook located in pos_ """
+    possible_ = []
+    x_, y_ = pos_
+    for x_2 in range(x_ + 1, 8, 1):
+        if (board_black[x_2][y_].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_2][y_].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((x_2, y_))
+        if board_black[x_2][y_].info['occupied']:
+            break
+    for x_2 in range(x_ - 1, -1, -1):
+        if (board_black[x_2][y_].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_2][y_].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((x_2, y_))
+        if board_black[x_2][y_].info['occupied']:
+            break
+    for y_2 in range(y_ + 1, 8, 1):
+        if (board_black[x_][y_2].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_][y_2].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((x_, y_2))
+        if board_black[x_][y_2].info['occupied']:
+            break
+    for y_2 in range(y_ - 1, -1, -1):
+        if (board_black[x_][y_2].info['color'] == 'b' and moves_ % 2 == 1) or (
+                board_black[x_][y_2].info['color'] == 'w' and moves_ % 2 == 0):
+            break
+        possible_.append((x_, y_2))
+        if board_black[x_][y_2].info['occupied']:
             break
 
     return possible_
@@ -1184,8 +1394,7 @@ def probability_free_range(from_, to_):
         from_0 += i_ratio
         from_1 += j_ratio
         probability_ *= 1 - M_white[0][time_stamp_][from_0][from_1] - M_white[1][time_stamp_][from_0][
-            from_1] - \
-                        M_white[2][time_stamp_][from_0][from_1]
+            from_1] - M_white[2][time_stamp_][from_0][from_1]
     return probability_
 
 
@@ -1212,15 +1421,14 @@ def probability_pin(from_, to_):
 
 
 def move_black_monte_carlo_optimized(black, background_, screen_, window_width_):
-    global board
+    global board_black
     global time_stamp_
     create_random_matrix()
-    curr_board = copy.deepcopy(board)
     child_list = []
     for i in range(0, 8):
         for j in range(0, 8):
-            if board[i][j].info['color'] == 'b':
-                my_list = select_moves((i, j), 1)
+            if board_black[i][j].info['color'] == 'b':
+                my_list = select_moves_black((i, j), 1)
                 for it in my_list:
                     child_list.append(((i, j), it))
     child_score = [[0., 0] for i in range(len(child_list))]
@@ -1229,7 +1437,7 @@ def move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
         from_ = (child_list[son][0])
         to_ = (child_list[son][1])
         probability_legal = 1.
-        if board[from_[0]][from_[1]].info['type'] != 'n' and board[from_[0]][from_[1]].info['type'] != 'p':
+        if board_black[from_[0]][from_[1]].info['type'] != 'n' and board_black[from_[0]][from_[1]].info['type'] != 'p':
             probability_legal *= probability_free_range(from_, to_)
         probability_legal -= probability_pin(from_, to_)
         probability_illegal = 1. - probability_legal
@@ -1242,7 +1450,7 @@ def move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
         pieces_can_attack = 0
         for i in range(0, 8):
             for j in range(0, 8):
-                if board[i][j].info['color'] == 'b':
+                if board_black[i][j].info['color'] == 'b':
                     pos_ = i, j
                     possible_squares = select_moves(pos_, 1)
                     pieces_can_attack += possible_squares.count(to_)
@@ -1277,52 +1485,21 @@ def move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
         probability_to_capture_back = probability_control(to_, probability_matrix_white, 0) / max_prob
         child_score[son][0] -= probability_to_capture_back * probability_silent
 
-        child_score.sort(key=lambda x: x[0], reverse=True)
-    print(child_score)
-
-    board = copy.deepcopy(curr_board)
+    child_score.sort(key=lambda x: x[0], reverse=True)
     for i in range(0, len(child_score)):
         child_index = child_list[child_score[i][1]]
+        legal_moves = select_moves(child_index[0], 1)
+        if legal_moves.count(child_index[1]) > 0:
+            move_piece(child_index[0], child_index[1], 1)
+            move_piece_black(child_index[0], child_index[1], 1)
+            break
         # available_moves = select_moves_referee(child_index[0], child_index[1])
         # ask the referee and play the move
-
-    """
-    global board, nodes_counter_in_mcts, white_won, stalemate, queue_message, last_shown_message_index, no_iter
-    nodes_counter_in_mcts = 0
-    curr_board = copy.deepcopy(board)
-    root = Node(1, 0, curr_board)
-    for i in range(0, no_iter):
-        mc_dfs(root, black, background_, screen_, window_width_)
-        global start, PERIOD_OF_TIME
-        print(time.time() - start)
-        if time.time() > start + PERIOD_OF_TIME: break
-    start = time.time()
-
-    dfs_check_tree_structure(root)
-    #  for i in range(1, nodes_counter_in_mcts + 1):
-    #      print(f" node {i} --> {visited_vector[i]} and  {score_vector[i]}", end='\n')
-    curr_val = 0.
-    best_node = -1
-    nod = root
-    for ch in range(0, nod.get_child_size()):
-        val = nod.v[ch].get_score()
-        if val > curr_val:
-            curr_val = val
-            best_node = ch
-    if nod.get_child_size() == 0:
-        if is_black_checked(get_black_king_position(), 1):
-            white_won = True
-        else:
-            stalemate = True
-    else:
-        #    print(best_node)
-        board = copy.deepcopy(nod.v[best_node].get_config())
     global random_vs_mc
     if random_vs_mc == 0:
         queue_message.pop()
     queue_message.append("player with black pieces moved")
     last_shown_message_index = len(queue_message)
-"""
 
 
 def move_black_monte_carlo(black, background_, screen_, window_width_):
@@ -1387,6 +1564,39 @@ def move_black_ai(moves_):
             white_won = True
         else:
             stalemate = True
+
+
+def select_moves_black(pos_, moves_):
+    """ returns list of available moves for the piece located in pos_"""
+    x_, y_ = pos_
+    if (board_black[x_][y_].info['color'] == 'w' and moves_ % 2 == 1) or (
+            board_black[x_][y_].info['color'] == 'b' and moves_ % 2 == 0):
+        return []
+    ret = []
+    if board_black[x_][y_].info['type'] == 'p':
+        if board_black[x_][y_].info['color'] == 'b':
+            ret = black_pawn_to_move2_black(pos_, moves_)
+            if inside_board(x_ + 1, y_ + 1) and white_en_passant[y_ + 1] and x_ == 4:
+                ret.extend([(x_ + 1, y_ + 1)])
+            if inside_board(x_ + 1, y_ - 1) and white_en_passant[y_ - 1] and x_ == 4:
+                ret.extend([(x_ + 1, y_ - 1)])
+    if board[x_][y_].info['type'] == 'n':
+        ret = knight_to_move2_black(pos_, moves_)
+    if board[x_][y_].info['type'] == 'r':
+        ret = rook_to_move2_black(pos_, moves_)
+    if board[x_][y_].info['type'] == 'b':
+        ret = bishop_to_move2_black(pos_, moves_)
+    if board[x_][y_].info['type'] == 'q':
+        ret = queen_to_move2_black(pos_, moves_)
+    if board[x_][y_].info['type'] == 'k':
+        ret = king_to_move2_black(pos_, moves_)
+        if (not right_black_rook_has_moved) and (not black_king_has_moved) and (not board[0][1].info['occupied']) and (
+                not board[0][2].info['occupied']):
+            ret.extend([(-2, -2)])
+        if (not left_black_rook_has_moved) and (not black_king_has_moved) and (not board[0][4].info['occupied']) and (
+                not board[0][5].info['occupied']):
+            ret.extend([(-4, -4)])
+    return ret
 
 
 def select_moves(pos_, moves_):
@@ -1524,6 +1734,25 @@ def simulate_move(from_, to_, moves_):
             return False
     board = copy.deepcopy(board2)
     return True
+
+
+def move_piece_black(from_, to_, moves_):
+    board_black[to_[0]][to_[1]].update('type', board_black[from_[0]][from_[1]].info['type'])
+    board_black[from_[0]][from_[1]].update('type', None)
+    board_black[to_[0]][to_[1]].update('color', board_black[from_[0]][from_[1]].info['color'])
+    board_black[from_[0]][from_[1]].update('color', None)
+    board_black[to_[0]][to_[1]].update('image', board_black[from_[0]][from_[1]].info['image'])
+    board_black[from_[0]][from_[1]].update('image', None)
+    board_black[to_[0]][to_[1]].update('occupied', True)
+    board_black[from_[0]][from_[1]].update('occupied', False)
+    board_black[to_[0]][to_[1]].update('killable', False)
+    board_black[from_[0]][from_[1]].update('killable', False)
+    if moves_ % 2 == 0 and to_[0] == 0 and board_black[to_[0]][to_[1]].info['type'] == 'p':
+        board_black[to_[0]][to_[1]].update('type', 'q')
+        board_black[to_[0]][to_[1]].update('image', 'wQ')
+    if moves_ % 2 == 1 and to_[0] == 7 and board_black[to_[0]][to_[1]].info['type'] == 'p':
+        board_black[to_[0]][to_[1]].update('type', 'q')
+        board_black[to_[0]][to_[1]].update('image', 'bQ')
 
 
 def move_piece(from_, to_, moves_):
@@ -1749,10 +1978,17 @@ if __name__ == '__main__':
             sys.stdout = original_stdout  # Reset the standard output to i
         update_display(black, background, screen, window_width)
         sys.exit()
+
+build_starting_board(window_width / 16)
 build_starting_board2(window_width / 16)
-move_black_monte_carlo_optimized(black, background, screen, window_width)
-update_display(black, background, screen, window_width)
-sys.exit()
+
+# start = time.time()
+# for i in range(0, 100):
+#     move_black_monte_carlo_optimized(black, background, screen, window_width)
+#     update_display(black, background, screen, window_width)
+#     while time.time() < start + 1: continue
+#     start = time.time()
+# sys.exit()
 
 if command == 'rmc':
     no_iter = int(sys.argv[3])
@@ -1762,7 +1998,7 @@ if command == 'cc':
 else:
     if command == 'rmc':
         random_vs_mc = 1
-        random_vs_monteCarlo(black, background, screen, window_width, 1)
+        random_vs_monteCarlo(black, backFground, screen, window_width, 1)
     else:
         while (not white_won) and (not black_won) and (not stalemate) and (not draw):
             pygame.time.delay(50)
@@ -1845,7 +2081,9 @@ else:
                                 last_shown_message_index = len(queue_message)
                                 update_display(black, background, screen, window_width)
                                 # pygame.time.delay(500)
-                                move_black_monte_carlo(black, background, screen, window_width)
+                                random_vs_mc = 0
+                                move_black_monte_carlo_optimized(black, background, screen, window_width)
+                                # move_black_monte_carlo(black, background, screen, window_width)
                                 # move_black_ai(moves)
                                 if is_white_checked(get_white_king_position(), 0):
                                     queue_message.append("white king is checked")
