@@ -1124,7 +1124,7 @@ def probability_control(pos_):
     ret = 0.
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
-            if i == j:
+            if i == 0 and j == 0:
                 continue
             if inside_board(i, j):
                 ret += M[0][time_stamp_][i][j]
@@ -1135,16 +1135,15 @@ def probability_control(pos_):
 
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
-            if i == j:
+            if i == 0 and j == 0:
                 continue
-            d = 1
             curr_pos = pos_
-            curr_pos[0] += d * i
-            curr_pos[1] += d * j
+            curr_pos[0] += i
+            curr_pos[1] += j
             while inside_board(curr_pos[0], curr_pos[1]):
                 ret += probability_free_range(curr_pos, pos_)
-                curr_pos[0] += d * i
-                curr_pos[1] += d * j
+                curr_pos[0] += i
+                curr_pos[1] += j
     return ret
 
 
@@ -1178,19 +1177,18 @@ def probability_pin(from_, to_):
         return M[0][time_stamp_][to_[0]][to_[1]]
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
-            if i == j:
+            if i == 0 and j == 0:
                 continue
-            d = 1
             curr_pos = list(from_)
-            curr_pos[0] += d * i
-            curr_pos[1] += d * j
+            curr_pos[0] += i
+            curr_pos[1] += j
             while inside_board(curr_pos[0], curr_pos[1]):
                 if board[curr_pos[0]][curr_pos[1]].info['type'] == 'k':
                     return M[2][time_stamp_][from_[0]][from_[1]]
                 if board[curr_pos[0]][curr_pos[1]].info['type'] is not None:
                     break
-                curr_pos[0] += d * i
-                curr_pos[1] += d * j
+                curr_pos[0] += i
+                curr_pos[1] += j
     return 0
 
 
@@ -1207,14 +1205,15 @@ def move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
                 for it in my_list:
                     child_list.append(((i, j), it))
     for i in range(0, len(child_list)):
-        print(child_list[i][0], child_list[i][1], end='\n')
         from_ = (child_list[i][0])
         to_ = (child_list[i][1])
         probability_legal = 1.
         if board[from_[0]][from_[1]].info['type'] != 'n' and board[from_[0]][from_[1]].info['type'] != 'p':
             probability_legal *= probability_free_range(from_, to_)
         probability_legal -= probability_pin(from_, to_)
-        print(probability_legal)
+        probability_illegal = 1 - probability_legal
+
+
     """
     global board, nodes_counter_in_mcts, white_won, stalemate, queue_message, last_shown_message_index, no_iter
     nodes_counter_in_mcts = 0
