@@ -39,7 +39,8 @@ note_table = [[0, 0, 0, 0, 0, 0, 0, 0],
 
 # 100 moves
 #
-M = [[[[0 for i in range(0, 8)] for i in range(0, 8)] for i in range(0, 100)] for i in range(0, 3)]
+M_white = [[[[0 for i in range(0, 8)] for i in range(0, 8)] for i in range(0, 100)] for i in range(0, 3)]
+M_black = [[[[0 for i in range(0, 8)] for i in range(0, 8)] for i in range(0, 100)] for i in range(0, 3)]
 
 piece_image = [pygame.image.load('bR.svg'), pygame.image.load('bB.svg'), pygame.image.load('bN.svg'),
                pygame.image.load('bQ.svg'), pygame.image.load('bK.svg'), pygame.image.load('bP.svg'),
@@ -1112,14 +1113,15 @@ def mc_dfs(nod, black, background_, screen_, window_width_):
 
 
 def create_random_matrix():
-    global M
+    global M_white, M_black
     # King - 0
     # Pawn - 1
     # Chesman - 2
-    M = np.random.uniform(size=np.shape(M))
+    M_white = np.random.uniform(size=np.shape(M_white))
+    M_black = np.random.uniform(size=np.shape(M_black))
 
 
-def probability_control(pos_):
+def probability_control(pos_, prob_table, tip):
     global time_stamp_
     ret = 0.
     for i in [-1, 0, 1]:
@@ -1127,23 +1129,36 @@ def probability_control(pos_):
             if i == 0 and j == 0:
                 continue
             if inside_board(i, j):
-                ret += M[0][time_stamp_][i][j]
+                if tip == 1:
+                    ret += prob_table[0][time_stamp_][i][j]
+                else:
+                    ret += prob_table[0][i][j]
     if inside_board(pos_[0] - 1, pos_[1] - 1):
-        ret += M[0][time_stamp_][pos_[0] - 1][pos_[1] - 1]
+        if tip == 1:
+            ret += prob_table[0][time_stamp_][pos_[0] - 1][pos_[1] - 1]
+        else:
+            ret += prob_table[0][pos_[0] - 1][pos_[1] - 1]
     if inside_board(pos_[0] - 1, pos_[1] + 1):
-        ret += M[0][time_stamp_][pos_[0] - 1][pos_[1] + 1]
-
+        if tip == 1:
+            ret += prob_table[0][time_stamp_][pos_[0] - 1][pos_[1] + 1]
+        else:
+            ret += prob_table[0][pos_[0] - 1][pos_[1] + 1]
+    c1 = 3. / 7.
+    c2 = 1.
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
             if i == 0 and j == 0:
                 continue
-            curr_pos = pos_
-            curr_pos[0] += i
-            curr_pos[1] += j
-            while inside_board(curr_pos[0], curr_pos[1]):
-                ret += probability_free_range(curr_pos, pos_)
-                curr_pos[0] += i
-                curr_pos[1] += j
+            curr_pos0, curr_pos1 = list(pos_)
+            curr_pos0 += i
+            curr_pos1 += j
+            seq_len = 2.
+            while inside_board(curr_pos0, curr_pos1):
+                c2 = 1. / (seq_len - 1.)
+                ret += c1 * probability_free_range((curr_pos0, curr_pos1), pos_) * c2
+                curr_pos0 = curr_pos0 + i
+                curr_pos1 = curr_pos1 + j
+                seq_len += 1
     return ret
 
 
@@ -1151,22 +1166,26 @@ def probability_free_range(from_, to_):
     global board
     global time_stamp_
     i_ratio = 0
-    if to_[0] < from_[0]:
+    to_0 = to_[0]
+    to_1 = to_[1]
+    from_0 = from_[0]
+    from_1 = from_[1]
+    if to_0 < from_0:
         i_ratio = -1
-    if to_[0] > from_[0]:
+    if to_0 > from_0:
         i_ratio = 1
     j_ratio = 0
-    if to_[1] < from_[1]:
+    if to_1 < from_1:
         j_ratio = -1
-    if to_[1] > from_[1]:
+    if to_1 > from_1:
         j_ratio = 1
     probability_ = 1.
-    while from_[0] != to_[0] or from_[1] != to_[1]:
-        from_[0] += i_ratio
-        from_[1] += j_ratio
-        probability_ *= 1 - M[0][time_stamp_][from_[0]][from_[1]] - M[1][time_stamp_][from_[0]][
-            from_[1]] - \
-                        M[2][time_stamp_][from_[0]][from_[1]]
+    while from_0 != to_0 or from_1 != to_1:
+        from_0 += i_ratio
+        from_1 += j_ratio
+        probability_ *= 1 - M_white[0][time_stamp_][from_0][from_1] - M_white[1][time_stamp_][from_0][
+            from_1] - \
+                        M_white[2][time_stamp_][from_0][from_1]
     return probability_
 
 
@@ -1174,7 +1193,7 @@ def probability_pin(from_, to_):
     global board
     global time_stamp_
     if board[from_[0]][from_[1]].info['type'] == 'k':
-        return M[0][time_stamp_][to_[0]][to_[1]]
+        return probability_control(to_, M_white, 1)
     for i in [-1, 0, 1]:
         for j in [-1, 0, 1]:
             if i == 0 and j == 0:
@@ -1184,7 +1203,7 @@ def probability_pin(from_, to_):
             curr_pos[1] += j
             while inside_board(curr_pos[0], curr_pos[1]):
                 if board[curr_pos[0]][curr_pos[1]].info['type'] == 'k':
-                    return M[2][time_stamp_][from_[0]][from_[1]]
+                    return probability_control(from_, M_white, 1)
                 if board[curr_pos[0]][curr_pos[1]].info['type'] is not None:
                     break
                 curr_pos[0] += i
@@ -1204,15 +1223,68 @@ def move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
                 my_list = select_moves((i, j), 1)
                 for it in my_list:
                     child_list.append(((i, j), it))
-    for i in range(0, len(child_list)):
-        from_ = (child_list[i][0])
-        to_ = (child_list[i][1])
+    child_score = [[0., 0] for i in range(len(child_list))]
+    for son in range(0, len(child_list)):
+        child_score[son][1] = son
+        from_ = (child_list[son][0])
+        to_ = (child_list[son][1])
         probability_legal = 1.
         if board[from_[0]][from_[1]].info['type'] != 'n' and board[from_[0]][from_[1]].info['type'] != 'p':
             probability_legal *= probability_free_range(from_, to_)
         probability_legal -= probability_pin(from_, to_)
-        probability_illegal = 1 - probability_legal
+        probability_illegal = 1. - probability_legal
+        probability_capture = (M_white[1][time_stamp_][to_[0]][to_[1]] + M_white[2][time_stamp_][to_[0]][to_[1]]) / 2.
+        probability_silent = 1. - probability_capture
+        probability_sum = probability_illegal + probability_silent + probability_capture
+        probability_silent /= probability_sum
+        probability_capture /= probability_sum
+        probability_illegal /= probability_sum
+        pieces_can_attack = 0
+        for i in range(0, 8):
+            for j in range(0, 8):
+                if board[i][j].info['color'] == 'b':
+                    pos_ = i, j
+                    possible_squares = select_moves(pos_, 1)
+                    pieces_can_attack += possible_squares.count(to_)
+        probability_matrix_white = [[[0 for i in range(0, 8)] for i in range(0, 8)] for i in range(0, 3)]
+        probability_matrix_black = [[[0 for i in range(0, 8)] for i in range(0, 8)] for i in range(0, 3)]
+        for i in range(0, 3):
+            for j in range(0, 8):
+                for l in range(0, 8):
+                    probability_matrix_white[i][j][l] = M_white[i][time_stamp_][j][l]
+                    probability_matrix_black[i][j][l] = M_black[i][time_stamp_][j][l]
 
+        product = probability_capture
+        for i in range(1, pieces_can_attack):
+            max_prob = 0.
+            for ii in range(0, 8):
+                for jj in range(0, 8):
+                    max_prob = max(max_prob, probability_control((ii, jj), probability_matrix_white, 0))
+            probability_to_capture_back = probability_control(to_, probability_matrix_white, 0) / max_prob
+            probability_to_play_silent_move = 1 - probability_to_capture_back
+            child_score[son][0] += product * probability_to_play_silent_move
+            product *= probability_to_capture_back
+            for piece in range(0, 3):
+                for i1 in range(0, 8):
+                    for j1 in range(0, 8):
+                        if abs(to_[0] - i1) == abs(to_[1] - j1) or to_[0] - i1 == 0 or to_[1] - j1 == 0:
+                            probability_matrix_white[piece][i1][j1] *= 0.5
+
+        max_prob = 0.
+        for ii in range(0, 8):
+            for jj in range(0, 8):
+                max_prob = max(max_prob, probability_control((ii, jj), probability_matrix_white, 0))
+        probability_to_capture_back = probability_control(to_, probability_matrix_white, 0) / max_prob
+        child_score[son][0] -= probability_to_capture_back * probability_silent
+
+        child_score.sort(key=lambda x: x[0], reverse=True)
+    print(child_score)
+
+    board = copy.deepcopy(curr_board)
+    for i in range(0, len(child_score)):
+        child_index = child_list[child_score[i][1]]
+        # available_moves = select_moves_referee(child_index[0], child_index[1])
+        # ask the referee and play the move
 
     """
     global board, nodes_counter_in_mcts, white_won, stalemate, queue_message, last_shown_message_index, no_iter
