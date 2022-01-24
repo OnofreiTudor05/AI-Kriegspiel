@@ -1351,6 +1351,19 @@ def create_random_matrix():
     M_white = np.random.uniform(size=np.shape(M_white))
     M_black = np.random.uniform(size=np.shape(M_black))
 
+    # with open('db.txt', 'r') as f:
+    # for i in range(3):
+    #     for j in range(100):
+    #         for k in range(8):
+    #             M_black[i][j][k] = [float(num) for num in f.readline().split(' ')]
+    #         f.readline()
+    #
+    # for i in range(3):
+    #     for j in range(100):
+    #         for k in range(8):
+    #             M_white[i][j][k] = [float(num) for num in f.readline().split(' ')]
+    #         f.readline()
+    #
 
 def probability_control(pos_, prob_table, tip):
     global time_stamp_
