@@ -1151,8 +1151,12 @@ def rook_to_move2_black(pos_, moves_):
     return possible_
 
 
-def move_white_ai(moves_):
-    """computer moves white pieces"""
+def move_white_ai(moves_, black, background_, screen_, window_width_):
+    global queue_message, last_shown_message_index
+    queue_message.append("loading..")
+    last_shown_message_index = len(queue_message)
+    update_display(black, background_, screen_, window_width_)
+    queue_message.pop()
     global black_won, white_won, stalemate
     white_pieces = []
     possible__ = []
@@ -1167,9 +1171,26 @@ def move_white_ai(moves_):
         if len(possible__) == 0:
             continue
         new_position = random.randint(0, len(possible__) - 1)
+        child_index = (white_pieces[sz], possible__[new_position])
+        if board[child_index[1][0]][child_index[1][1]].info['type'] is None:
+            queue_message.append("player with white pieces moved")
+            last_shown_message_index = len(queue_message)
+        else:
+            line = "12345678"
+            column = "ABCDEFGH"
+            msg = f"White captured a piece from {column[7 - child_index[0][1]]}{line[7 - child_index[0][0]]} to {column[7 - child_index[1][1]]}{line[7 - child_index[1][0]]}"
+            queue_message.append(msg)
+            last_shown_message_index = len(queue_message)
         move_piece(white_pieces[sz], possible__[new_position], moves_)
+        update_display(black, background_, screen_, window_width_)
         player_ok = False
         break
+
+    if is_black_checked2(get_black_king_position(), 1):
+        msg = "Black king is checked!"
+        queue_message.append(msg)
+        last_shown_message_index = len(queue_message)
+
     if player_ok:
         if is_white_checked(get_white_king_position(), moves_):
             black_won = True
@@ -1246,7 +1267,7 @@ def simulate_game(act_board, black, background_, screen_, window_width_):
     white_won, black_won, stalemate, draw = 0, 0, 0, 0
     while (not white_won) and (not black_won) and (not stalemate) and (not draw):
         if moves__ % 2 == 0:
-            move_white_ai(moves__)
+            move_white_ai(moves__, black, background_, screen_, window_width_)
             moves__ += 1
         else:
             move_black_ai(moves__)
@@ -1359,13 +1380,13 @@ def probability_control(pos_, prob_table, tip):
         for j in [-1, 0, 1]:
             if i == 0 and j == 0:
                 continue
-            curr_pos0, curr_pos1 = list(pos_)
+            curr_pos0, curr_pos1 = pos_[0], pos_[1]
             curr_pos0 += i
             curr_pos1 += j
             seq_len = 2.
             while inside_board(curr_pos0, curr_pos1):
                 c2 = 1. / (seq_len - 1.)
-                ret += c1 * probability_free_range((curr_pos0, curr_pos1), pos_) * c2
+                ret += c1 * probability_free_range((curr_pos0, curr_pos1), (pos_[0], pos_[1])) * c2
                 curr_pos0 = curr_pos0 + i
                 curr_pos1 = curr_pos1 + j
                 seq_len += 1
@@ -1391,6 +1412,8 @@ def probability_free_range(from_, to_):
         j_ratio = 1
     probability_ = 1.
     while from_0 != to_0 or from_1 != to_1:
+        if not inside_board(from_0, from_1):
+            break
         from_0 += i_ratio
         from_1 += j_ratio
         probability_ *= 1 - M_white[0][time_stamp_][from_0][from_1] - M_white[1][time_stamp_][from_0][
@@ -1421,9 +1444,12 @@ def probability_pin(from_, to_):
 
 
 def move_black_monte_carlo_optimized(black, background_, screen_, window_width_):
-    global board_black
-    global time_stamp_
+    global board_black, queue_message, last_shown_message_index
+    global time_stamp_, white_won, stalemate, black_won
     create_random_matrix()
+    queue_message.append("loading...")
+    last_shown_message_index = len(queue_message)
+    update_display(black, background_, screen_, window_width_)
     child_list = []
     for i in range(0, 8):
         for j in range(0, 8):
@@ -1486,20 +1512,38 @@ def move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
         child_score[son][0] -= probability_to_capture_back * probability_silent
 
     child_score.sort(key=lambda x: x[0], reverse=True)
+    has_moved = 0
+    is_capture = 0
+    queue_message.pop()
+    last_shown_message_index = min(last_shown_message_index, len(queue_message))
     for i in range(0, len(child_score)):
         child_index = child_list[child_score[i][1]]
         legal_moves = select_moves(child_index[0], 1)
         if legal_moves.count(child_index[1]) > 0:
+            if board[child_index[1][0]][child_index[1][1]].info['type'] is None:
+                queue_message.append("player with black pieces moved")
+                last_shown_message_index = len(queue_message)
+            else:
+                line = "12345678"
+                column = "ABCDEFGH"
+                msg = f"Black captured a piece from {column[7 - child_index[0][1]]}{line[7 - child_index[0][0]]} to {column[7 - child_index[1][1]]}{line[7 - child_index[1][0]]}"
+                queue_message.append(msg)
+                last_shown_message_index = len(queue_message)
+            has_moved = 1
             move_piece(child_index[0], child_index[1], 1)
-            move_piece_black(child_index[0], child_index[1], 1)
             break
-        # available_moves = select_moves_referee(child_index[0], child_index[1])
-        # ask the referee and play the move
+    if is_white_checked2(get_white_king_position(), 0):
+        msg = "White king is checked!"
+        queue_message.append(msg)
+        last_shown_message_index = len(queue_message)
+
+    if has_moved == 0:
+        if is_black_checked(get_black_king_position(), 1):
+            white_won = True
+        else:
+            stalemate = True
+        return
     global random_vs_mc
-    if random_vs_mc == 0:
-        queue_message.pop()
-    queue_message.append("player with black pieces moved")
-    last_shown_message_index = len(queue_message)
 
 
 def move_black_monte_carlo(black, background_, screen_, window_width_):
@@ -1736,25 +1780,6 @@ def simulate_move(from_, to_, moves_):
     return True
 
 
-def move_piece_black(from_, to_, moves_):
-    board_black[to_[0]][to_[1]].update('type', board_black[from_[0]][from_[1]].info['type'])
-    board_black[from_[0]][from_[1]].update('type', None)
-    board_black[to_[0]][to_[1]].update('color', board_black[from_[0]][from_[1]].info['color'])
-    board_black[from_[0]][from_[1]].update('color', None)
-    board_black[to_[0]][to_[1]].update('image', board_black[from_[0]][from_[1]].info['image'])
-    board_black[from_[0]][from_[1]].update('image', None)
-    board_black[to_[0]][to_[1]].update('occupied', True)
-    board_black[from_[0]][from_[1]].update('occupied', False)
-    board_black[to_[0]][to_[1]].update('killable', False)
-    board_black[from_[0]][from_[1]].update('killable', False)
-    if moves_ % 2 == 0 and to_[0] == 0 and board_black[to_[0]][to_[1]].info['type'] == 'p':
-        board_black[to_[0]][to_[1]].update('type', 'q')
-        board_black[to_[0]][to_[1]].update('image', 'wQ')
-    if moves_ % 2 == 1 and to_[0] == 7 and board_black[to_[0]][to_[1]].info['type'] == 'p':
-        board_black[to_[0]][to_[1]].update('type', 'q')
-        board_black[to_[0]][to_[1]].update('image', 'bQ')
-
-
 def move_piece(from_, to_, moves_):
     """piece from position from_ is moved to position to_ and position from_ is cleared with respect to special moves like castles and en passant"""
     global white_king_has_moved, left_white_rook_has_moved, right_white_rook_has_moved
@@ -1782,6 +1807,7 @@ def move_piece(from_, to_, moves_):
         white_en_passant[from_[1]] = True
     if moves_ % 2 == 1 and board[from_[0]][from_[1]].info['type'] == 'p' and to_[0] - from_[0] == 2:
         black_en_passant[from_[1]] = True
+
     board[to_[0]][to_[1]].update('type', board[from_[0]][from_[1]].info['type'])
     board[from_[0]][from_[1]].update('type', None)
     board[to_[0]][to_[1]].update('color', board[from_[0]][from_[1]].info['color'])
@@ -1792,12 +1818,27 @@ def move_piece(from_, to_, moves_):
     board[from_[0]][from_[1]].update('occupied', False)
     board[to_[0]][to_[1]].update('killable', False)
     board[from_[0]][from_[1]].update('killable', False)
+
+    board_black[to_[0]][to_[1]].update('type', board_black[from_[0]][from_[1]].info['type'])
+    board_black[from_[0]][from_[1]].update('type', None)
+    board_black[to_[0]][to_[1]].update('color', board_black[from_[0]][from_[1]].info['color'])
+    board_black[from_[0]][from_[1]].update('color', None)
+    board_black[to_[0]][to_[1]].update('image', board_black[from_[0]][from_[1]].info['image'])
+    board_black[from_[0]][from_[1]].update('image', None)
+    board_black[to_[0]][to_[1]].update('occupied', True)
+    board_black[from_[0]][from_[1]].update('occupied', False)
+    board_black[to_[0]][to_[1]].update('killable', False)
+    board_black[from_[0]][from_[1]].update('killable', False)
+
     if moves_ % 2 == 0 and to_[0] == 0 and board[to_[0]][to_[1]].info['type'] == 'p':
         board[to_[0]][to_[1]].update('type', 'q')
         board[to_[0]][to_[1]].update('image', 'wQ')
     if moves_ % 2 == 1 and to_[0] == 7 and board[to_[0]][to_[1]].info['type'] == 'p':
         board[to_[0]][to_[1]].update('type', 'q')
         board[to_[0]][to_[1]].update('image', 'bQ')
+        board_black[to_[0]][to_[1]].update('type', 'q')
+        board_black[to_[0]][to_[1]].update('image', 'bQ')
+
     current_state = ""
     for i in range(0, 8):
         for j in range(0, 8):
@@ -1807,12 +1848,34 @@ def move_piece(from_, to_, moves_):
         draw = True
 
 
+def mco_vs_random(black, background_, screen_, window_width_, moves__):
+    global white_won, black_won, stalemate, draw, random_vs_mc, time_stamp_, queue_message, last_shown_message_index
+    random_vs_mc = 1
+    while (not white_won) and (not black_won) and (not stalemate) and (not draw):
+        if moves__ % 2 == 0:
+            move_white_ai(moves__, black, background_, screen_, window_width_)
+            moves__ += 1
+            update_display(black, background_, screen_, window_width_)
+        else:
+            if time_stamp_ < 100:
+                move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
+            else:
+                move_black_ai(moves__)
+            moves__ += 1
+            time_stamp_ += 1
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        update_display(black, background_, screen_, window_width_)
+
+
 def random_vs_random(black, background_, screen_, window_width_, moves__):
     """ computer plays black and whites pieces """
     global white_won, black_won, stalemate, draw
     while (not white_won) and (not black_won) and (not stalemate) and (not draw):
         if moves__ % 2 == 0:
-            move_white_ai(moves__)
+            move_white_ai(moves__, black, background_, screen_, window_width_)
             moves__ += 1
         else:
             move_black_ai(moves__)
@@ -1829,7 +1892,7 @@ def random_vs_monteCarlo(black, background_, screen_, window_width_, moves__):
     global white_won, black_won, stalemate, draw
     while (not white_won) and (not black_won) and (not stalemate) and (not draw):
         if moves__ % 2 == 0:
-            move_white_ai(moves__)
+            move_white_ai(moves__, black, background_, screen_, window_width_)
             moves__ += 1
         else:
             move_black_monte_carlo(black, background_, screen_, window_width_)
@@ -1917,88 +1980,15 @@ if __name__ == '__main__':
     possible = []
     current_note_piece = 0
 
-    if command == "bestmove":
-        see_me = 'y'
-        no_iter = int(sys.argv[2])
-        original_stdout = sys.stdout
-        my_file = open("configuration.txt", "r")
-        content_list = my_file.readlines()
-        curr_table = [[] for i in range(0, 8)]
-        for i in range(0, 8):
-            curr_table[i] = content_list[i].split(" ")
-        for i in range(0, 8):
-            for j in range(0, 8):
-                width = window_width
-                if curr_table[i][j][-1] == '\n':
-                    curr_table[i][j] = curr_table[i][j][:-1]
-                if curr_table[i][j] == '-':
-                    board[i][7 - j] = Piece(None, None, None, False, False, i, 7 - j, window_width / 16)
-                    continue
-                if curr_table[i][j] == 'wp':
-                    board[i][7 - j] = Piece('w', 'p', 'wP', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'bp':
-                    board[i][7 - j] = Piece('b', 'p', 'bP', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'wr':
-                    board[i][7 - j] = Piece('w', 'r', 'wR', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'br':
-                    board[i][7 - j] = Piece('b', 'r', 'bR', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'wn':
-                    board[i][7 - j] = Piece('w', 'n', 'wN', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'bn':
-                    board[i][7 - j] = Piece('b', 'n', 'bN', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'wb':
-                    board[i][7 - j] = Piece('w', 'b', 'wB', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'bb':
-                    board[i][7 - j] = Piece('b', 'b', 'bB', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'wk':
-                    board[i][7 - j] = Piece('w', 'k', 'wK', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'bk':
-                    board[i][7 - j] = Piece('b', 'k', 'bK', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'wq':
-                    board[i][7 - j] = Piece('w', 'q', 'wQ', False, True, i, 7 - j, width / 16)
-                    continue
-                if curr_table[i][j] == 'bq':
-                    board[i][7 - j] = Piece('b', 'q', 'bQ', False, True, i, 7 - j, width / 16)
-                    continue
-        random_vs_mc = 1
-        move_black_monte_carlo(black, background, screen, window_width)
-        with open('mcst.txt', 'w') as f:
-            sys.stdout = f  # Change the standard output to the file we created.
-            print('This message will be written to a file.')
-            sys.stdout = original_stdout  # Reset the standard output to i
-        update_display(black, background, screen, window_width)
-        sys.exit()
-
 build_starting_board(window_width / 16)
 build_starting_board2(window_width / 16)
 
-# start = time.time()
-# for i in range(0, 100):
-#     move_black_monte_carlo_optimized(black, background, screen, window_width)
-#     update_display(black, background, screen, window_width)
-#     while time.time() < start + 1: continue
-#     start = time.time()
-# sys.exit()
-
-if command == 'rmc':
-    no_iter = int(sys.argv[3])
-
 if command == 'cc':
-    random_vs_random(black, background, screen, window_width, 0)
+    mco_vs_random(black, background, screen, window_width, 0)
 else:
     if command == 'rmc':
         random_vs_mc = 1
-        random_vs_monteCarlo(black, backFground, screen, window_width, 1)
+        random_vs_monteCarlo(black, background, screen, window_width, 1)
     else:
         while (not white_won) and (not black_won) and (not stalemate) and (not draw):
             pygame.time.delay(50)
@@ -2060,34 +2050,27 @@ else:
                             if piece_to_move == (0, 3) and (x, y) == (0, 5):
                                 move_piece((0, 7), (0, 4), moves)
                                 move_counter -= 1
-                            line = "12345678"
-                            column = "ABCDEFGH"
-                            msg = ""
-                            if board[x][y].info['color'] == 'b':
-                                msg = f"Player 1 captured a piece from {column[7 - piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
+
+                            if board[x][y].info['type'] is None:
+                                queue_message.append("player with white pieces moved")
+                                last_shown_message_index = len(queue_message)
                             else:
-                                msg = f"Player 1 made a valid move from {column[7 - piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
+                                line = "12345678"
+                                column = "ABCDEFGH"
+                                msg = f"White captured a piece from {column[7 - piece_to_move[1]]}{line[7 - piece_to_move[0]]} to {column[7 - y]}{line[7 - x]}"
+                                queue_message.append(msg)
+                                last_shown_message_index = len(queue_message)
+
                             move_piece(piece_to_move, (x, y), moves)
-                            queue_message.append(msg)
-                            last_shown_message_index = len(queue_message)
                             moves += 1
                             if command == 'hc':
                                 no_iter = 2
                                 make_them_not_killable(possible)
                                 if is_black_checked(get_black_king_position(), 1):
-                                    queue_message.append("black king is checked")
+                                    queue_message.append("Black king is checked")
                                     last_shown_message_index = len(queue_message)
-                                queue_message.append("loading...")
-                                last_shown_message_index = len(queue_message)
-                                update_display(black, background, screen, window_width)
-                                # pygame.time.delay(500)
                                 random_vs_mc = 0
                                 move_black_monte_carlo_optimized(black, background, screen, window_width)
-                                # move_black_monte_carlo(black, background, screen, window_width)
-                                # move_black_ai(moves)
-                                if is_white_checked(get_white_king_position(), 0):
-                                    queue_message.append("white king is checked")
-                                    last_shown_message_index = len(queue_message)
                                 moves += 1
                         else:
                             queue_message.append("Player 1 tried an invalid move")
@@ -2119,15 +2102,26 @@ else:
                                     stalemate = True
 
             update_display(black, background, screen, window_width)
+
+if draw:
+    msg = "Draw"
+    queue_message.append(msg)
+    last_shown_message_index = len(queue_message)
+if stalemate:
+    msg = "Stalemate"
+    queue_message.append(msg)
+    last_shown_message_index = len(queue_message)
+if black_won:
+    msg = "Black won!"
+    queue_message.append(msg)
+    last_shown_message_index = len(queue_message)
+if white_won:
+    msg = "White won!"
+    queue_message.append(msg)
+    last_shown_message_index = len(queue_message)
+
 while True:
-    if white_won:
-        update_display2(black, background, screen, window_width, "Player with white pieces won!")
-    if black_won:
-        update_display2(black, background, screen, window_width, "Player with black pieces won!")
-    if stalemate:
-        update_display2(black, background, screen, window_width, "Stalemate!")
-    if draw:
-        update_display2(black, background, screen, window_width, "Draw!")
+    update_display(black, background, screen, window_width)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
