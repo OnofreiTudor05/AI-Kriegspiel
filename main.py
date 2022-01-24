@@ -2073,7 +2073,7 @@ else:
                                 move_black_monte_carlo_optimized(black, background, screen, window_width)
                                 moves += 1
                         else:
-                            queue_message.append("Player 1 tried an invalid move")
+                            queue_message.append("White tried an invalid move")
                             last_shown_message_index = len(queue_message)
                         make_them_not_killable(possible)
                         possible = []
