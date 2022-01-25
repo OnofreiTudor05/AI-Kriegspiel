@@ -27,6 +27,7 @@ class Piece:
         self.info[field] = value
 
 
+PATH = 'resources\\'
 note_table = [[0, 0, 0, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0],
@@ -35,18 +36,18 @@ note_table = [[0, 0, 0, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0],
-              [1, 2, 3, 4, 5, 6, 7, 0]]
+              [0, 1, 2, 3, 4, 5, 6, 7]]
 
 # 100 moves
 #
 M_white = [[[[0 for i in range(0, 8)] for i in range(0, 8)] for i in range(0, 100)] for i in range(0, 3)]
 M_black = [[[[0 for i in range(0, 8)] for i in range(0, 8)] for i in range(0, 100)] for i in range(0, 3)]
 
-piece_image = [pygame.image.load('bR.svg'), pygame.image.load('bB.svg'), pygame.image.load('bN.svg'),
-               pygame.image.load('bQ.svg'), pygame.image.load('bK.svg'), pygame.image.load('bP.svg'),
-               pygame.image.load('X.jpg')]
-
-pygame.transform.scale(piece_image[6], (45, 45))
+piece_image = [pygame.image.load(PATH + 'bR.svg'), pygame.image.load(PATH + 'bB.svg'),
+               pygame.image.load(PATH + 'bN.svg'),
+               pygame.image.load(PATH + 'bQ.svg'), pygame.image.load(PATH + 'bK.svg'),
+               pygame.image.load(PATH + 'bP.svg'),
+               pygame.image.load(PATH + 'X.jpg')]
 
 black_color = (129, 73, 0)
 white_color = (255, 235, 156)
@@ -71,11 +72,12 @@ def draw_note_table(_background, position_to_draw):
                     position_to_draw[0] + position_to_draw[2] * i,
                     position_to_draw[2], position_to_draw[2]))
             else:
+                if j == 0:
+                    continue
                 pygame.draw.rect(_background, (255, 255, 255, 125), (
                     position_to_draw[1] + position_to_draw[2] * j,
                     position_to_draw[0] + position_to_draw[2] * i,
                     position_to_draw[2] - 1, position_to_draw[2] - 1))
-            piece_width = 60
             piece_to_draw = note_table[i][j] - 1
             if piece_to_draw != -1:
                 _background.blit(piece_image[piece_to_draw], (position_to_draw[1] + position_to_draw[2] * j,
@@ -105,12 +107,14 @@ move_counter = 0
 black_en_passant, white_en_passant = [False for i in range(0, 8)], [False for i in range(0, 8)]
 board = [[Piece(None, None, None, False, False, 0, 0, 0) for i in range(0, 8)] for j in range(0, 8)]
 board_black = [[Piece(None, None, None, False, False, 0, 0, 0) for i in range(0, 8)] for j in range(0, 8)]
-pieces = {'bP': pygame.image.load('bP.svg'), 'bR': pygame.image.load('bR.svg'), 'bN': pygame.image.load('bN.svg'),
-          'bB': pygame.image.load('bB.svg'),
-          'bQ': pygame.image.load('bQ.svg'), 'bK': pygame.image.load('bK.svg'),
-          'wP': pygame.image.load('wP.svg'), 'wR': pygame.image.load('wR.svg'), 'wN': pygame.image.load('wN.svg'),
-          'wB': pygame.image.load('wB.svg'),
-          'wQ': pygame.image.load('wQ.svg'), 'wK': pygame.image.load('wK.svg')}
+pieces = {'bP': pygame.image.load(PATH + 'bP.svg'), 'bR': pygame.image.load(PATH + 'bR.svg'),
+          'bN': pygame.image.load(PATH + 'bN.svg'),
+          'bB': pygame.image.load(PATH + 'bB.svg'),
+          'bQ': pygame.image.load(PATH + 'bQ.svg'), 'bK': pygame.image.load(PATH + 'bK.svg'),
+          'wP': pygame.image.load(PATH + 'wP.svg'), 'wR': pygame.image.load(PATH + 'wR.svg'),
+          'wN': pygame.image.load(PATH + 'wN.svg'),
+          'wB': pygame.image.load(PATH + 'wB.svg'),
+          'wQ': pygame.image.load(PATH + 'wQ.svg'), 'wK': pygame.image.load(PATH + 'wK.svg')}
 
 
 def get_white_king_position():
@@ -331,7 +335,7 @@ def update_display2(black, background_, screen_, width, text):
     myfont = pygame.font.SysFont('Times New Roman', 32)
     textsurface = myfont.render(text, False, (255, 255, 255))
     screen.blit(textsurface, (width / 2 + width / 50, 0))
-    draw_note_table(screen, [0, 420, 45])
+    draw_note_table(screen, [0, 400, 50])
     draw_log_messages()
     pygame.display.update()
 
@@ -392,9 +396,9 @@ def update_display(black, background_, screen_, width):
                                         0)
         """
     # self.screen.blit(up_arrow, (width-width/20, 400))
-    screen.blit(up_arrow, (width - width / 15, width - width / 2 + 45))
+    screen.blit(up_arrow, (width - width / 15, width - width / 2 + 50))
     screen.blit(down_arrow, (width - width / 15, width - width / 15))
-    draw_note_table(screen, [0, 420, 45])
+    draw_note_table(screen, [0, 400, 50])
     draw_log_messages()
     pygame.display.update()
 
@@ -1984,18 +1988,18 @@ def draw_log_messages():
 
 
 if __name__ == '__main__':
-    down_arrow = pygame.image.load("down.png")
+    down_arrow = pygame.image.load(PATH + "down.png")
     down_arrow = pygame.transform.scale(down_arrow, (45, 45))
-    up_arrow = pygame.image.load("up.png")
+    up_arrow = pygame.image.load(PATH + "up.png")
     up_arrow = pygame.transform.scale(up_arrow, (45, 45))
-    black = pygame.image.load("black.png")
+    black = pygame.image.load(PATH + "black.png")
     command = sys.argv[1]
     see_me = sys.argv[2]
     window_width = 800
     window_height = 800
     size = (window_height, window_width)
     screen = pygame.display.set_mode(size)
-    background = pygame.image.load('board.jpg')
+    background = pygame.image.load(PATH + 'board.jpg')
     background = pygame.transform.scale(background, (400, 400))
     black = pygame.transform.scale(black, (800, 800))
     selected = False
@@ -2026,14 +2030,15 @@ else:
                         update_display(black, background, screen, window_width)
                         continue
 
-                    position_on_note = get_note_table_cell([0, 420, 45])
+                    position_on_note = get_note_table_cell([0, 400, 50])
                     if 0 <= position_on_note[0] <= 8 and 0 <= position_on_note[1] <= 7:
                         if current_note_piece == 0:
                             if position_on_note[0] == 8:
-                                if position_on_note[1] == 6:
-                                    current_note_piece = -1
-                                else:
-                                    current_note_piece = position_on_note[1] + 1
+                                if position_on_note[0] != 0:
+                                    if position_on_note[1] - 1 == 6:
+                                        current_note_piece = -1
+                                    else:
+                                        current_note_piece = position_on_note[1] - 1 + 1
                         else:
                             if position_on_note[0] != 8:
                                 if current_note_piece == -1:
