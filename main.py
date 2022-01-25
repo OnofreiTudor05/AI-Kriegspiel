@@ -1365,6 +1365,7 @@ def create_random_matrix():
     #         f.readline()
     #
 
+
 def probability_control(pos_, prob_table, tip):
     global time_stamp_
     ret = 0.
@@ -1544,7 +1545,17 @@ def move_black_monte_carlo_optimized(black, background_, screen_, window_width_)
                 last_shown_message_index = len(queue_message)
             has_moved = 1
             move_piece(child_index[0], child_index[1], 1)
+            update_display(black, background_, screen_, window_width_)
             break
+        else:
+            if is_black_checked2(get_black_king_position(), 1) and \
+                    board_black[child_index[0][0]][child_index[0][1]].info[
+                        'type'] != 'k':
+                continue
+            queue_message.append("Black tried an invalid move")
+            last_shown_message_index = len(queue_message)
+            update_display(black, background_, screen_, window_width_)
+
     if is_white_checked2(get_white_king_position(), 0):
         msg = "White king is checked!"
         queue_message.append(msg)
@@ -2134,8 +2145,14 @@ if white_won:
     last_shown_message_index = len(queue_message)
 
 while True:
+
     update_display(black, background, screen, window_width)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pos = pygame.mouse.get_pos()
+            if check_clicked_on_arrows(pos, window_width) != 0:
+                update_display(black, background, screen, window_width)
+                continue
